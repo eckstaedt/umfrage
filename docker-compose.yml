@@ -1,0 +1,21 @@
+services:
+  umfrage:
+    build: .
+    container_name: umfrage-dirigenten
+    restart: unless-stopped
+    environment:
+      RESULTS_PASSWORD: ${RESULTS_PASSWORD:-Tagung2026!}
+    volumes:
+      - ./data:/data
+    networks: [proxy]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.umfrage-dirigenten.rule=Host(`${UMFRAGE_HOST:-dirigenten.cloud-eck.de}`)
+      - traefik.http.routers.umfrage-dirigenten.entrypoints=websecure
+      - traefik.http.routers.umfrage-dirigenten.tls.certresolver=le
+      - traefik.http.services.umfrage-dirigenten.loadbalancer.server.port=3000
+
+networks:
+  proxy:
+    external: true

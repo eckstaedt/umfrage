@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Umfrage Dirigententagung</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main id="app">
+  <h1>Umfrage zur Dirigententagung</h1>
+  <p class="lead">Wie bereitest du dich auf ein Werk vor? 6 kurze Fragen, ca. 2–3 Minuten. <strong>Komplett anonym</strong>.</p>
+
+  <form id="f" novalidate>
+    <section class="q" data-q="zeit">
+      <h2><span class="num">1</span>Wie viel Zeit investierst du insgesamt in die Vorbereitung auf ein Werk?</h2>
+      <p class="hint">Gesamtzeit für ein Werk bis zur Aufführung, ohne die Proben selbst.</p>
+      <div class="choices">
+        <label><input type="radio" name="zeit" value="u2">unter 2 Stunden</label>
+        <label><input type="radio" name="zeit" value="2-5">2–5 Stunden</label>
+        <label><input type="radio" name="zeit" value="5-10">5–10 Stunden</label>
+        <label><input type="radio" name="zeit" value="10-20">10–20 Stunden</label>
+        <label><input type="radio" name="zeit" value="ue20">mehr als 20 Stunden</label>
+      </div>
+    </section>
+
+    <section class="q" data-q="auswahl">
+      <h2><span class="num">2</span>Wann steht deine Werkauswahl für den kommenden Vortrag in der Regel fest?</h2>
+      <div class="choices">
+        <label><input type="radio" name="auswahl" value="u1w">weniger als 1 Woche vorher</label>
+        <label><input type="radio" name="auswahl" value="1-2w">1–2 Wochen vorher</label>
+        <label><input type="radio" name="auswahl" value="2-4w">2–4 Wochen vorher</label>
+        <label><input type="radio" name="auswahl" value="1-3m">1–3 Monate vorher</label>
+        <label><input type="radio" name="auswahl" value="ue3m">mehr als 3 Monate vorher</label>
+      </div>
+    </section>
+
+    <section class="q" data-q="anteile">
+      <h2><span class="num">3 + 4</span>Wie verteilt sich deine Vorbereitungszeit?</h2>
+      <p class="hint">Schätze grob in Prozent. Der Rest ist z.&nbsp;B. Noten lernen, Stimmen einrichten, Probenplanung.</p>
+
+      <p style="margin:0 0 2px"><strong>3.</strong> Anteil für das <strong>Dirigat</strong> (Schlagtechnik, Einsätze, Gestik)</p>
+      <div class="slider-row untouched" id="row-d">
+        <input type="range" id="dirigat" min="0" max="100" step="5" value="0" aria-label="Anteil Dirigat in Prozent">
+        <span class="val" id="val-d">bitte schieben</span>
+      </div>
+
+      <p style="margin:12px 0 2px"><strong>4.</strong> Anteil für das Herausarbeiten der <strong>geistlichen Botschaft</strong></p>
+      <div class="slider-row b untouched" id="row-b">
+        <input type="range" id="botschaft" min="0" max="100" step="5" value="0" aria-label="Anteil geistliche Botschaft in Prozent">
+        <span class="val" id="val-b">bitte schieben</span>
+      </div>
+
+      <div class="split" aria-hidden="true"><div class="d" id="bar-d" style="width:0"></div><div class="b" id="bar-b" style="width:0"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>Dirigat</span>
+        <span><i style="background:var(--accent2)"></i>Geistl. Botschaft</span>
+        <span><i style="background:var(--rest)"></i>Rest <span id="val-r">100&nbsp;%</span></span>
+      </div>
+    </section>
+
+    <section class="q" data-q="vorbereitet">
+      <h2><span class="num">5</span>Wie gut fühlst du dich in der Regel vorbereitet?</h2>
+      <div class="scale" id="scale"></div>
+      <div class="scale-ends"><span>1 = gar nicht</span><span>10 = bestens</span></div>
+    </section>
+
+    <section class="q" data-q="relevanz">
+      <h2><span class="num">6</span>Wie viel Relevanz hat deine Vorbereitung für deine Glaubwürdigkeit vor dem Chor/Orchester?</h2>
+      <div class="choices">
+        <label><input type="radio" name="relevanz" value="1">keine Relevanz</label>
+        <label><input type="radio" name="relevanz" value="2">geringe Relevanz</label>
+        <label><input type="radio" name="relevanz" value="3">hohe Relevanz</label>
+        <label><input type="radio" name="relevanz" value="4">sehr hohe Relevanz</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <h2>Du leitest hauptsächlich … <span class="opt">(optional)</span></h2>
+      <div class="choices">
+        <label><input type="radio" name="ensemble" value="chor">Chor</label>
+        <label><input type="radio" name="ensemble" value="orchester">Orchester</label>
+        <label><input type="radio" name="ensemble" value="beides">beides</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <h2>Was hilft dir am meisten bei der Vorbereitung, oder was fehlt dir? <span class="opt">(optional)</span></h2>
+      <textarea name="kommentar" maxlength="1000" placeholder="Freitext …"></textarea>
+    </section>
+
+    <button class="primary" type="submit" id="send">Absenden</button>
+    <p class="msg err" id="msg" role="alert"></p>
+  </form>
+  <p class="anon">Es werden keine Namen, IP-Adressen, Uhrzeiten oder Cookies gespeichert – nur deine Antworten.</p>
+</main>
+
+<script>
+(function () {
+  const done = () => {
+    document.getElementById('app').innerHTML =
+      '<div class="done"><div class="big">✓</div><h1>Danke!</h1><p class="lead">Deine Antwort wurde anonym gespeichert.</p></div>';
+  };
+  try { if (localStorage.getItem('umfrage-abgegeben')) { done(); return; } } catch (e) {}
+
+  // Skala 1–10
+  const scale = document.getElementById('scale');
+  for (let i = 1; i <= 10; i++) {
+    scale.insertAdjacentHTML('beforeend', `<label><input type="radio" name="vorbereitet" value="${i}">${i}</label>`);
+  }
+
+  // Schieberegler: Summe ≤ 100 %
+  const d = document.getElementById('dirigat'), b = document.getElementById('botschaft');
+  const touched = { d: false, b: false };
+  function render() {
+    const dv = +d.value, bv = +b.value;
+    document.getElementById('val-d').textContent = touched.d ? dv + ' %' : 'bitte schieben';
+    document.getElementById('val-b').textContent = touched.b ? bv + ' %' : 'bitte schieben';
+    document.getElementById('row-d').classList.toggle('untouched', !touched.d);
+    document.getElementById('row-b').classList.toggle('untouched', !touched.b);
+    document.getElementById('bar-d').style.width = dv + '%';
+    document.getElementById('bar-b').style.width = bv + '%';
+    document.getElementById('val-r').textContent = (100 - dv - bv) + ' %';
+  }
+  function onInput(me, other, key) {
+    touched[key] = true;
+    if (+me.value + +other.value > 100) me.value = 100 - +other.value;
+    render();
+    document.querySelector('[data-q=anteile]').classList.remove('missing');
+  }
+  d.addEventListener('input', () => onInput(d, b, 'd'));
+  b.addEventListener('input', () => onInput(b, d, 'b'));
+  render();
+
+  const form = document.getElementById('f');
+  form.addEventListener('change', e => {
+    const q = e.target.closest('.q'); if (q) q.classList.remove('missing');
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    msg.textContent = '';
+    const val = n => (form.querySelector(`input[name="${n}"]:checked`) || {}).value;
+    const data = {
+      zeit: val('zeit'), auswahl: val('auswahl'),
+      dirigat: +d.value, botschaft: +b.value,
+      vorbereitet: +val('vorbereitet') || null, relevanz: val('relevanz'),
+      ensemble: val('ensemble') || '', kommentar: form.kommentar.value,
+    };
+    const missing = [];
+    if (!data.zeit) missing.push('zeit');
+    if (!data.auswahl) missing.push('auswahl');
+    if (!touched.d || !touched.b) missing.push('anteile');
+    if (!data.vorbereitet) missing.push('vorbereitet');
+    if (!data.relevanz) missing.push('relevanz');
+    if (missing.length) {
+      missing.forEach(m => document.querySelector(`[data-q="${m}"]`).classList.add('missing'));
+      document.querySelector(`[data-q="${missing[0]}"]`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      msg.textContent = 'Bitte die rot markierten Fragen beantworten (Schieberegler bitte einmal bewegen, auch bei 0 %).';
+      return;
+    }
+    const btn = document.getElementById('send');
+    btn.disabled = true; btn.textContent = 'Wird gesendet …';
+    try {
+      const r = await fetch('/api/antwort', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Fehler');
+      try { localStorage.setItem('umfrage-abgegeben', '1'); } catch (e) {}
+      done(); window.scrollTo(0, 0);
+    } catch (err) {
+      msg.textContent = 'Senden fehlgeschlagen: ' + err.message + ' Bitte nochmal versuchen.';
+      btn.disabled = false; btn.textContent = 'Absenden';
+    }
+  });
+})();
+</script>
+</body>
+</html>

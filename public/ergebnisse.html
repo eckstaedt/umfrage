@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Umfrage-Ergebnisse</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .kpi b { display: block; font-size: 1.6rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: .8rem; }
+  .bars { display: grid; gap: 6px; }
+  .bar { display: grid; grid-template-columns: minmax(90px, 38%) 1fr 4.5em; gap: 8px; align-items: center; font-size: .9rem; }
+  .bar .track { background: var(--bg); border-radius: 5px; height: 18px; overflow: hidden; }
+  .bar .fill { background: var(--accent); height: 100%; border-radius: 5px; }
+  .bar .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: .85rem; }
+  .stat { color: var(--muted); font-size: .85rem; margin: 10px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  td.few { color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  .kommentar { border-left: 3px solid var(--accent); padding: 4px 10px; margin: 8px 0; white-space: pre-wrap; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .toolbar button { flex: 1; min-height: 44px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+  .insight { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: .92rem; }
+  .insight ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ergebnisse</h1>
+  <form id="login" class="q">
+    <p class="hint">Bitte Passwort eingeben.</p>
+    <input type="password" id="pw" autocomplete="current-password" placeholder="Passwort">
+    <button class="primary" type="submit">Anzeigen</button>
+    <p class="msg err" id="msg"></p>
+  </form>
+  <div id="out" hidden></div>
+</main>
+
+<script>
+(function () {
+  const L = {
+    zeit: { u2: 'unter 2 Std.', '2-5': '2–5 Std.', '5-10': '5–10 Std.', '10-20': '10–20 Std.', ue20: 'über 20 Std.' },
+    auswahl: { u1w: '< 1 Woche', '1-2w': '1–2 Wochen', '2-4w': '2–4 Wochen', '1-3m': '1–3 Monate', ue3m: '> 3 Monate' },
+    relevanz: { 1: 'keine', 2: 'gering', 3: 'hoch', 4: 'sehr hoch' },
+    ensemble: { chor: 'Chor', orchester: 'Orchester', beides: 'beides', '': 'keine Angabe' },
+  };
+  // Klassenmitten in Stunden für Schätzungen
+  const HOURS = { u2: 1, '2-5': 3.5, '5-10': 7.5, '10-20': 15, ue20: 25 };
+  const RANK = {
+    zeit: k => Object.keys(L.zeit).indexOf(k) + 1,
+    auswahl: k => Object.keys(L.auswahl).indexOf(k) + 1,
+    relevanz: k => +k,
+  };
+  let pw = '';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : NaN;
+  const median = a => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+  const f1 = x => isNaN(x) ? '–' : x.toLocaleString('de-DE', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const f0 = x => isNaN(x) ? '–' : Math.round(x).toLocaleString('de-DE');
+
+  function ranks(a) {
+    const idx = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]);
+    const r = new Array(a.length);
+    for (let i = 0; i < idx.length;) {
+      let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+      for (let k = i; k <= j; k++) r[idx[k][1]] = (i + j) / 2 + 1;
+      i = j + 1;
+    }
+    return r;
+  }
+  function pearson(x, y) {
+    const mx = mean(x), my = mean(y); let n = 0, dx = 0, dy = 0;
+    for (let i = 0; i < x.length; i++) { n += (x[i] - mx) * (y[i] - my); dx += (x[i] - mx) ** 2; dy += (y[i] - my) ** 2; }
+    return dx && dy ? n / Math.sqrt(dx * dy) : NaN;
+  }
+  const spearman = (x, y) => pearson(ranks(x), ranks(y));
+
+  function bars(rows, total) {
+    const max = Math.max(1, ...rows.map(r => r[1]));
+    return '<div class="bars">' + rows.map(([label, n]) =>
+      `<div class="bar"><span>${esc(label)}</span><div class="track"><div class="fill" style="width:${n / max * 100}%"></div></div><span class="n">${n} · ${total ? Math.round(n / total * 100) : 0}%</span></div>`
+    ).join('') + '</div>';
+  }
+  function dist(arr, key) {
+    return Object.entries(L[key]).map(([k, label]) => [label, arr.filter(a => a[key] === k).length]);
+  }
+  function crossTable(arr, key, title) {
+    const rows = Object.entries(L[key]).map(([k, label]) => {
+      const g = arr.filter(a => a[key] === k);
+      if (!g.length) return '';
+      const cls = g.length < 3 ? ' class="few"' : '';
+      return `<tr><td>${esc(label)}</td><td${cls}>${g.length}</td><td${cls}>${f1(mean(g.map(a => a.vorbereitet)))}</td><td${cls}>${f0(mean(g.map(a => a.dirigat)))} %</td><td${cls}>${f0(mean(g.map(a => a.botschaft)))} %</td><td${cls}>${f1(mean(g.map(a => +a.relevanz)))}</td></tr>`;
+    }).join('');
+    return `<section class="q"><h2>${title}</h2><p class="hint">Mittelwerte je Gruppe. Graue Zeilen: weniger als 3 Antworten, nicht aussagekräftig.</p><div class="scroll"><table>
+      <tr><th></th><th>n</th><th>vorbereitet (1–10)</th><th>Dirigat</th><th>Botschaft</th><th>Relevanz (1–4)</th></tr>${rows}</table></div></section>`;
+  }
+
+  function render(arr) {
+    const n = arr.length;
+    if (!n) { $('out').innerHTML = toolbar() + '<p class="lead">Noch keine Antworten.</p>'; bind(arr); return; }
+    const vorb = arr.map(a => a.vorbereitet), dir = arr.map(a => a.dirigat), bot = arr.map(a => a.botschaft);
+    const rest = arr.map(a => 100 - a.dirigat - a.botschaft);
+    const hrs = arr.map(a => HOURS[a.zeit]);
+    const hD = arr.map(a => HOURS[a.zeit] * a.dirigat / 100), hB = arr.map(a => HOURS[a.zeit] * a.botschaft / 100);
+    const relHigh = arr.filter(a => +a.relevanz >= 3).length;
+    const late = arr.filter(a => a.auswahl === 'u1w' || a.auswahl === '1-2w').length;
+
+    // Korrelationen (Spearman, ordinal)
+    const vars = [
+      ['Zeit gesamt', arr.map(a => RANK.zeit(a.zeit))],
+      ['Vorlauf Werkauswahl', arr.map(a => RANK.auswahl(a.auswahl))],
+      ['% Dirigat', dir],
+      ['% Botschaft', bot],
+      ['Vorbereitet', vorb],
+      ['Relevanz', arr.map(a => RANK.relevanz(a.relevanz))],
+    ];
+    let corr = '';
+    const findings = [];
+    if (n >= 5) {
+      corr = '<section class="q"><h2>Zusammenhänge</h2><p class="hint">Rangkorrelation (Spearman) von −1 bis +1. Ab etwa ±0,3 ein erkennbarer, ab ±0,5 ein deutlicher Zusammenhang. Kein Beweis für Ursache und Wirkung.</p><div class="scroll"><table><tr><th></th>' +
+        vars.map((v, i) => `<th>${i + 1}</th>`).join('') + '</tr>' +
+        vars.map(([name, x], i) => `<tr><td>${i + 1} ${esc(name)}</td>` + vars.map(([, y], j) => {
+          if (j >= i) return '<td></td>';
+          const r = spearman(x, y);
+          if (Math.abs(r) >= 0.3) findings.push([Math.abs(r), `${vars[j][0]} ↔ ${name}: ${r > 0 ? 'je mehr/höher, desto mehr/höher' : 'gegenläufig'} (r = ${r.toFixed(2).replace('.', ',')})`]);
+          return `<td style="font-weight:${Math.abs(r) >= 0.3 ? 700 : 400}">${isNaN(r) ? '–' : r.toFixed(2).replace('.', ',')}</td>`;
+        }).join('') + '</tr>').join('') + '</table></div></section>';
+    }
+    findings.sort((a, b) => b[0] - a[0]);
+
+    const kommentare = arr.map(a => a.kommentar).filter(Boolean);
+
+    $('out').innerHTML = toolbar() + `
+      <div class="kpis">
+        <div class="kpi"><b>${n}</b><span>Antworten</span></div>
+        <div class="kpi"><b>${f1(mean(vorb))}</b><span>Ø vorbereitet (1–10)</span></div>
+        <div class="kpi"><b>~${f0(mean(hrs))} h</b><span>Ø Zeit pro Werk (geschätzt)</span></div>
+        <div class="kpi"><b>${Math.round(relHigh / n * 100)} %</b><span>Relevanz hoch / sehr hoch</span></div>
+      </div>
+      <div class="insight"><strong>Auf einen Blick</strong><ul>
+        <li>Im Schnitt fließen <b>${f0(mean(dir))} %</b> der Vorbereitung ins Dirigat und <b>${f0(mean(bot))} %</b> in die geistliche Botschaft, ${f0(mean(rest))} % in anderes.</li>
+        <li>Geschätzt sind das pro Werk ca. <b>${f1(mean(hD))} h</b> Dirigat und <b>${f1(mean(hB))} h</b> geistliche Botschaft.</li>
+        <li>${Math.round(late / n * 100)} % wissen ihr Werk erst höchstens 2 Wochen vorher.</li>
+        ${findings.slice(0, 3).map(f => `<li>${esc(f[1])}</li>`).join('')}
+      </ul></div>
+
+      <section class="q"><h2>1 · Zeit für die Vorbereitung eines Werks</h2>${bars(dist(arr, 'zeit'), n)}
+        <p class="stat">Median-Klasse: ${esc(L.zeit[Object.keys(L.zeit)[Math.round(median(arr.map(a => RANK.zeit(a.zeit)))) - 1]])}</p></section>
+
+      <section class="q"><h2>2 · Werkauswahl steht fest …</h2>${bars(dist(arr, 'auswahl'), n)}</section>
+
+      <section class="q"><h2>3 + 4 · Verteilung der Vorbereitungszeit</h2>
+        <div class="split"><div class="d" style="width:${mean(dir)}%"></div><div class="b" style="width:${mean(bot)}%"></div></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Dirigat Ø ${f0(mean(dir))} %</span><span><i style="background:var(--accent2)"></i>Geistl. Botschaft Ø ${f0(mean(bot))} %</span><span><i style="background:var(--rest)"></i>Rest Ø ${f0(mean(rest))} %</span></div>
+        <p class="stat">Dirigat: Median ${f0(median(dir))} %, Spanne ${Math.min(...dir)}–${Math.max(...dir)} % · Botschaft: Median ${f0(median(bot))} %, Spanne ${Math.min(...bot)}–${Math.max(...bot)} %</p>
+        <h2 style="margin-top:14px;font-size:.95rem">Anteil Dirigat</h2>${bars(buckets(dir), n)}
+        <h2 style="margin-top:14px;font-size:.95rem">Anteil geistliche Botschaft</h2>${bars(buckets(bot), n)}
+      </section>
+
+      <section class="q"><h2>5 · Wie gut vorbereitet (1–10)</h2>${bars(Array.from({ length: 10 }, (_, i) => [String(i + 1), vorb.filter(v => v === i + 1).length]), n)}
+        <p class="stat">Mittelwert ${f1(mean(vorb))} · Median ${f1(median(vorb))} · Standardabweichung ${f1(sd(vorb))}</p></section>
+
+      <section class="q"><h2>6 · Relevanz für die Glaubwürdigkeit</h2>${bars(dist(arr, 'relevanz'), n)}</section>
+
+      ${crossTable(arr, 'zeit', 'Nach Vorbereitungszeit')}
+      ${crossTable(arr, 'auswahl', 'Nach Vorlauf der Werkauswahl')}
+      ${crossTable(arr, 'relevanz', 'Nach empfundener Relevanz')}
+      ${arr.some(a => a.ensemble) ? crossTable(arr, 'ensemble', 'Nach Ensemble') : ''}
+      ${corr}
+      ${kommentare.length ? `<section class="q"><h2>Kommentare (${kommentare.length})</h2>${kommentare.map(k => `<div class="kommentar">${esc(k)}</div>`).join('')}</section>` : ''}
+    `;
+    bind(arr);
+  }
+
+  function buckets(vals) {
+    const b = [['0–10 %', 0, 10], ['15–25 %', 15, 25], ['30–45 %', 30, 45], ['50–70 %', 50, 70], ['75–100 %', 75, 100]];
+    return b.map(([l, lo, hi]) => [l, vals.filter(v => v >= lo && v <= hi).length]);
+  }
+
+  const toolbar = () => '<div class="toolbar"><button id="reload">Aktualisieren</button><button id="csv">CSV herunterladen</button></div>';
+  function bind(arr) {
+    $('reload').onclick = load;
+    $('csv').onclick = () => {
+      const cols = ['zeit', 'auswahl', 'dirigat', 'botschaft', 'vorbereitet', 'relevanz', 'ensemble', 'kommentar'];
+      const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+      const csv = '﻿' + cols.join(';') + '\n' + arr.map(a => cols.map(c => q(
+        c === 'zeit' ? L.zeit[a.zeit] : c === 'auswahl' ? L.auswahl[a.auswahl] : c === 'relevanz' ? a.relevanz + ' ' + L.relevanz[a.relevanz] : c === 'ensemble' ? L.ensemble[a.ensemble] : a[c]
+      )).join(';')).join('\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const el = document.createElement('a'); el.href = url; el.download = 'umfrage-dirigententagung.csv'; el.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+  }
+
+  async function load() {
+    const r = await fetch('/api/ergebnisse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passwort: pw }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Fehler');
+    $('login').hidden = true; $('out').hidden = false;
+    render(j.antworten);
+  }
+
+  $('login').addEventListener('submit', async e => {
+    e.preventDefault();
+    pw = $('pw').value; $('msg').textContent = '';
+    try { await load(); } catch (err) { $('msg').textContent = err.message; }
+  });
+})();
+</script>
+</body>
+</html>
