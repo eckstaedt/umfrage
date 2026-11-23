@@ -15,8 +15,8 @@ const PUBLIC = path.join(__dirname, 'public');
 
 // ---- Fragebogen-Definition (muss zu public/index.html passen) ----
 const OPTIONS = {
-  zeit: ['u2', '2-5', '5-10', '10-20', 'ue20'],
-  auswahl: ['u1w', '1-2w', '2-4w', '1-3m', 'ue3m'],
+  zeit: ['u30', '30-60', '1-2', '2-4', 'ue4'],
+  auswahl: ['tag', '1-3t', '3-5t', '1w', 'ue1w'],
   relevanz: ['1', '2', '3', '4'],
   ensemble: ['chor', 'orchester', 'beides', ''],
 };
