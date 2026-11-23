@@ -8,6 +8,7 @@
   --accent-soft: #dbe6f1;
   --accent2: #b8862e;
   --accent2-soft: #f1e5cd;
+  --accent3: #3f8a6e;
   --rest: #cfcdc7;
   --ok: #2e7d4f;
   --err: #b3261e;
@@ -23,6 +24,7 @@
     --accent-soft: #243547;
     --accent2: #e0b25c;
     --accent2-soft: #3d3220;
+    --accent3: #6cc4a1;
     --rest: #3a3a40;
     --ok: #6fcf97;
     --err: #f28b82;
@@ -79,9 +81,11 @@ h1 { font-size: 1.5rem; margin: 8px 0 4px; line-height: 1.2; }
 .slider-row { display: flex; align-items: center; gap: 12px; }
 .slider-row input[type=range] { flex: 1; height: 36px; accent-color: var(--accent); }
 .slider-row.b input[type=range] { accent-color: var(--accent2); }
+.slider-row.p input[type=range] { accent-color: var(--accent3); }
 .val { min-width: 4.2em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .untouched .val { color: var(--muted); font-weight: 400; font-size: .85rem; }
 .split { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--rest); margin: 14px 0 6px; }
+.split .p { background: var(--accent3); }
 .split .d { background: var(--accent); }
 .split .b { background: var(--accent2); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); }

@@ -96,19 +96,19 @@
       const g = arr.filter(a => a[key] === k);
       if (!g.length) return '';
       const cls = g.length < 3 ? ' class="few"' : '';
-      return `<tr><td>${esc(label)}</td><td${cls}>${g.length}</td><td${cls}>${f1(mean(g.map(a => a.vorbereitet)))}</td><td${cls}>${f0(mean(g.map(a => a.dirigat)))} %</td><td${cls}>${f0(mean(g.map(a => a.botschaft)))} %</td><td${cls}>${f1(mean(g.map(a => +a.relevanz)))}</td></tr>`;
+      return `<tr><td>${esc(label)}</td><td${cls}>${g.length}</td><td${cls}>${f1(mean(g.map(a => a.vorbereitet)))}</td><td${cls}>${f0(mean(g.map(a => a.partitur || 0)))} %</td><td${cls}>${f0(mean(g.map(a => a.dirigat)))} %</td><td${cls}>${f0(mean(g.map(a => a.botschaft)))} %</td><td${cls}>${f1(mean(g.map(a => +a.relevanz)))}</td></tr>`;
     }).join('');
     return `<section class="q"><h2>${title}</h2><p class="hint">Mittelwerte je Gruppe. Graue Zeilen: weniger als 3 Antworten, nicht aussagekräftig.</p><div class="scroll"><table>
-      <tr><th></th><th>n</th><th>vorbereitet (1–10)</th><th>Dirigat</th><th>Botschaft</th><th>Relevanz (1–4)</th></tr>${rows}</table></div></section>`;
+      <tr><th></th><th>n</th><th>vorbereitet (1–10)</th><th>Partitur</th><th>Dirigat</th><th>Botschaft</th><th>Relevanz (1–4)</th></tr>${rows}</table></div></section>`;
   }
 
   function render(arr) {
     const n = arr.length;
     if (!n) { $('out').innerHTML = toolbar() + '<p class="lead">Noch keine Antworten.</p>'; bind(arr); return; }
-    const vorb = arr.map(a => a.vorbereitet), dir = arr.map(a => a.dirigat), bot = arr.map(a => a.botschaft);
-    const rest = arr.map(a => 100 - a.dirigat - a.botschaft);
+    const vorb = arr.map(a => a.vorbereitet), par = arr.map(a => a.partitur || 0), dir = arr.map(a => a.dirigat), bot = arr.map(a => a.botschaft);
+    const rest = arr.map(a => 100 - (a.partitur || 0) - a.dirigat - a.botschaft);
     const hrs = arr.map(a => HOURS[a.zeit]);
-    const hD = arr.map(a => HOURS[a.zeit] * a.dirigat / 100), hB = arr.map(a => HOURS[a.zeit] * a.botschaft / 100);
+    const hP = arr.map(a => HOURS[a.zeit] * (a.partitur || 0) / 100), hD = arr.map(a => HOURS[a.zeit] * a.dirigat / 100), hB = arr.map(a => HOURS[a.zeit] * a.botschaft / 100);
     const relHigh = arr.filter(a => +a.relevanz >= 3).length;
     const late = arr.filter(a => a.auswahl === 'tag' || a.auswahl === '1-3t').length;
 
@@ -116,6 +116,7 @@
     const vars = [
       ['Zeit gesamt', arr.map(a => RANK.zeit(a.zeit))],
       ['Vorlauf Werkauswahl', arr.map(a => RANK.auswahl(a.auswahl))],
+      ['% Partitur', par],
       ['% Dirigat', dir],
       ['% Botschaft', bot],
       ['Vorbereitet', vorb],
@@ -145,8 +146,8 @@
         <div class="kpi"><b>${Math.round(relHigh / n * 100)} %</b><span>Relevanz hoch / sehr hoch</span></div>
       </div>
       <div class="insight"><strong>Auf einen Blick</strong><ul>
-        <li>Im Schnitt fließen <b>${f0(mean(dir))} %</b> der Vorbereitung ins Dirigat und <b>${f0(mean(bot))} %</b> in die geistliche Botschaft, ${f0(mean(rest))} % in anderes.</li>
-        <li>Geschätzt sind das pro Werk ca. <b>${f0(mean(hD) * 60)} Min.</b> Dirigat und <b>${f0(mean(hB) * 60)} Min.</b> geistliche Botschaft.</li>
+        <li>Im Schnitt fließen <b>${f0(mean(par))} %</b> der Vorbereitung ins Verinnerlichen der Partitur, <b>${f0(mean(dir))} %</b> ins Dirigat und <b>${f0(mean(bot))} %</b> in die geistliche Botschaft, ${f0(mean(rest))} % in anderes.</li>
+        <li>Geschätzt sind das pro Werk ca. <b>${f0(mean(hP) * 60)} Min.</b> Partitur, <b>${f0(mean(hD) * 60)} Min.</b> Dirigat und <b>${f0(mean(hB) * 60)} Min.</b> geistliche Botschaft.</li>
         <li>${Math.round(late / n * 100)} % legen ihr Werk erst höchstens 3 Tage vorher fest.</li>
         ${findings.slice(0, 3).map(f => `<li>${esc(f[1])}</li>`).join('')}
       </ul></div>
@@ -156,18 +157,19 @@
 
       <section class="q"><h2>2 · Werkauswahl steht fest …</h2>${bars(dist(arr, 'auswahl'), n)}</section>
 
-      <section class="q"><h2>3 + 4 · Verteilung der Vorbereitungszeit</h2>
-        <div class="split"><div class="d" style="width:${mean(dir)}%"></div><div class="b" style="width:${mean(bot)}%"></div></div>
-        <div class="legend"><span><i style="background:var(--accent)"></i>Dirigat Ø ${f0(mean(dir))} %</span><span><i style="background:var(--accent2)"></i>Geistl. Botschaft Ø ${f0(mean(bot))} %</span><span><i style="background:var(--rest)"></i>Rest Ø ${f0(mean(rest))} %</span></div>
-        <p class="stat">Dirigat: Median ${f0(median(dir))} %, Spanne ${Math.min(...dir)}–${Math.max(...dir)} % · Botschaft: Median ${f0(median(bot))} %, Spanne ${Math.min(...bot)}–${Math.max(...bot)} %</p>
+      <section class="q"><h2>3–5 · Verteilung der Vorbereitungszeit</h2>
+        <div class="split"><div class="p" style="width:${mean(par)}%"></div><div class="d" style="width:${mean(dir)}%"></div><div class="b" style="width:${mean(bot)}%"></div></div>
+        <div class="legend"><span><i style="background:var(--accent3)"></i>Partitur Ø ${f0(mean(par))} %</span><span><i style="background:var(--accent)"></i>Dirigat Ø ${f0(mean(dir))} %</span><span><i style="background:var(--accent2)"></i>Geistl. Botschaft Ø ${f0(mean(bot))} %</span><span><i style="background:var(--rest)"></i>Rest Ø ${f0(mean(rest))} %</span></div>
+        <p class="stat">Partitur: Median ${f0(median(par))} %, Spanne ${Math.min(...par)}–${Math.max(...par)} % · Dirigat: Median ${f0(median(dir))} %, Spanne ${Math.min(...dir)}–${Math.max(...dir)} % · Botschaft: Median ${f0(median(bot))} %, Spanne ${Math.min(...bot)}–${Math.max(...bot)} %</p>
+        <h2 style="margin-top:14px;font-size:.95rem">Anteil Partitur verinnerlichen</h2>${bars(buckets(par), n)}
         <h2 style="margin-top:14px;font-size:.95rem">Anteil Dirigat</h2>${bars(buckets(dir), n)}
         <h2 style="margin-top:14px;font-size:.95rem">Anteil geistliche Botschaft</h2>${bars(buckets(bot), n)}
       </section>
 
-      <section class="q"><h2>5 · Wie gut vorbereitet (1–10)</h2>${bars(Array.from({ length: 10 }, (_, i) => [String(i + 1), vorb.filter(v => v === i + 1).length]), n)}
+      <section class="q"><h2>6 · Wie gut vorbereitet (1–10)</h2>${bars(Array.from({ length: 10 }, (_, i) => [String(i + 1), vorb.filter(v => v === i + 1).length]), n)}
         <p class="stat">Mittelwert ${f1(mean(vorb))} · Median ${f1(median(vorb))} · Standardabweichung ${f1(sd(vorb))}</p></section>
 
-      <section class="q"><h2>6 · Relevanz für die Glaubwürdigkeit</h2>${bars(dist(arr, 'relevanz'), n)}</section>
+      <section class="q"><h2>7 · Relevanz für die Glaubwürdigkeit</h2>${bars(dist(arr, 'relevanz'), n)}</section>
 
       ${crossTable(arr, 'zeit', 'Nach Vorbereitungszeit')}
       ${crossTable(arr, 'auswahl', 'Nach Vorlauf der Werkauswahl')}
@@ -188,7 +190,7 @@
   function bind(arr) {
     $('reload').onclick = load;
     $('csv').onclick = () => {
-      const cols = ['zeit', 'auswahl', 'dirigat', 'botschaft', 'vorbereitet', 'relevanz', 'ensemble', 'kommentar'];
+      const cols = ['zeit', 'auswahl', 'partitur', 'dirigat', 'botschaft', 'vorbereitet', 'relevanz', 'ensemble', 'kommentar'];
       const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
       const csv = '﻿' + cols.join(';') + '\n' + arr.map(a => cols.map(c => q(
         c === 'zeit' ? L.zeit[a.zeit] : c === 'auswahl' ? L.auswahl[a.auswahl] : c === 'relevanz' ? a.relevanz + ' ' + L.relevanz[a.relevanz] : c === 'ensemble' ? L.ensemble[a.ensemble] : a[c]

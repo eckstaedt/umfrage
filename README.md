@@ -1,6 +1,6 @@
 # Umfrage Dirigententagung
 
-Anonyme Kurzumfrage (6 Fragen + 2 optionale), mobil, < 3 Min.
+Anonyme Kurzumfrage (7 Fragen + 2 optionale), mobil, < 3 Min.
 Läuft auf dem Netcup-VPS hinter dem bestehenden Traefik (Netz `proxy`, Entrypoint `websecure`, Certresolver `le`).
 
 - Umfrage: https://dirigenten.cloud-eck.de

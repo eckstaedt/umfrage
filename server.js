@@ -28,10 +28,11 @@ function validate(b) {
     if (!OPTIONS[k].includes(String(b[k]))) return null;
     out[k] = String(b[k]);
   }
-  const dirigat = Number(b.dirigat), botschaft = Number(b.botschaft), vorb = Number(b.vorbereitet);
-  for (const v of [dirigat, botschaft]) if (!Number.isInteger(v) || v < 0 || v > 100 || v % 5) return null;
-  if (dirigat + botschaft > 100) return null;
+  const partitur = Number(b.partitur), dirigat = Number(b.dirigat), botschaft = Number(b.botschaft), vorb = Number(b.vorbereitet);
+  for (const v of [partitur, dirigat, botschaft]) if (!Number.isInteger(v) || v < 0 || v > 100 || v % 5) return null;
+  if (partitur + dirigat + botschaft > 100) return null;
   if (!Number.isInteger(vorb) || vorb < 1 || vorb > 10) return null;
+  out.partitur = partitur;
   out.dirigat = dirigat;
   out.botschaft = botschaft;
   out.vorbereitet = vorb;

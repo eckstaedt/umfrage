@@ -10,7 +10,7 @@
 <body>
 <main id="app">
   <h1>Umfrage zur Dirigententagung</h1>
-  <p class="lead">Wie bereitest du dich auf ein Werk vor? 6 kurze Fragen, ca. 2–3 Minuten. <strong>Komplett anonym</strong>.</p>
+  <p class="lead">Wie bereitest du dich auf ein Werk vor? 7 kurze Fragen, ca. 2–3 Minuten. <strong>Komplett anonym</strong>.</p>
 
   <form id="f" novalidate>
     <section class="q" data-q="zeit">
@@ -37,23 +37,30 @@
     </section>
 
     <section class="q" data-q="anteile">
-      <h2><span class="num">3 + 4</span>Wie verteilt sich deine Vorbereitungszeit?</h2>
-      <p class="hint">Schätze grob in Prozent. Der Rest ist z.&nbsp;B. Noten lernen, Stimmen einrichten, Probenplanung.</p>
+      <h2><span class="num">3–5</span>Wie verteilt sich deine Vorbereitungszeit?</h2>
+      <p class="hint">Schätze grob in Prozent. Der Rest ist z.&nbsp;B. Stimmen einrichten, Probenplanung, Organisation.</p>
 
-      <p style="margin:0 0 2px"><strong>3.</strong> Anteil für das <strong>Dirigat</strong> (Schlagtechnik, Einsätze, Gestik)</p>
+      <p style="margin:0 0 2px"><strong>3.</strong> Anteil für das <strong>Verinnerlichen der Partitur</strong> (Stimmen, Harmonik, Form)</p>
+      <div class="slider-row p untouched" id="row-p">
+        <input type="range" id="partitur" min="0" max="100" step="5" value="0" aria-label="Anteil Partitur verinnerlichen in Prozent">
+        <span class="val" id="val-p">bitte schieben</span>
+      </div>
+
+      <p style="margin:12px 0 2px"><strong>4.</strong> Anteil für das <strong>Dirigat</strong> (Schlagtechnik, Einsätze, Gestik)</p>
       <div class="slider-row untouched" id="row-d">
         <input type="range" id="dirigat" min="0" max="100" step="5" value="0" aria-label="Anteil Dirigat in Prozent">
         <span class="val" id="val-d">bitte schieben</span>
       </div>
 
-      <p style="margin:12px 0 2px"><strong>4.</strong> Anteil für das Herausarbeiten der <strong>geistlichen Botschaft</strong></p>
+      <p style="margin:12px 0 2px"><strong>5.</strong> Anteil für das Herausarbeiten der <strong>geistlichen Botschaft</strong></p>
       <div class="slider-row b untouched" id="row-b">
         <input type="range" id="botschaft" min="0" max="100" step="5" value="0" aria-label="Anteil geistliche Botschaft in Prozent">
         <span class="val" id="val-b">bitte schieben</span>
       </div>
 
-      <div class="split" aria-hidden="true"><div class="d" id="bar-d" style="width:0"></div><div class="b" id="bar-b" style="width:0"></div></div>
+      <div class="split" aria-hidden="true"><div class="p" id="bar-p" style="width:0"></div><div class="d" id="bar-d" style="width:0"></div><div class="b" id="bar-b" style="width:0"></div></div>
       <div class="legend">
+        <span><i style="background:var(--accent3)"></i>Partitur</span>
         <span><i style="background:var(--accent)"></i>Dirigat</span>
         <span><i style="background:var(--accent2)"></i>Geistl. Botschaft</span>
         <span><i style="background:var(--rest)"></i>Rest <span id="val-r">100&nbsp;%</span></span>
@@ -61,13 +68,13 @@
     </section>
 
     <section class="q" data-q="vorbereitet">
-      <h2><span class="num">5</span>Wie gut fühlst du dich in der Regel vorbereitet?</h2>
+      <h2><span class="num">6</span>Wie gut fühlst du dich in der Regel vorbereitet?</h2>
       <div class="scale" id="scale"></div>
       <div class="scale-ends"><span>1 = gar nicht</span><span>10 = bestens</span></div>
     </section>
 
     <section class="q" data-q="relevanz">
-      <h2><span class="num">6</span>Wie viel Relevanz hat deine Vorbereitung für deine Glaubwürdigkeit vor dem Chor/Orchester?</h2>
+      <h2><span class="num">7</span>Wie viel Relevanz hat deine Vorbereitung für deine Glaubwürdigkeit vor dem Chor/Orchester?</h2>
       <div class="choices">
         <label><input type="radio" name="relevanz" value="1">keine Relevanz</label>
         <label><input type="radio" name="relevanz" value="2">geringe Relevanz</label>
@@ -111,26 +118,24 @@
   }
 
   // Schieberegler: Summe ≤ 100 %
-  const d = document.getElementById('dirigat'), b = document.getElementById('botschaft');
-  const touched = { d: false, b: false };
+  const sl = { p: document.getElementById('partitur'), d: document.getElementById('dirigat'), b: document.getElementById('botschaft') };
+  const touched = { p: false, d: false, b: false };
+  const sum = () => +sl.p.value + +sl.d.value + +sl.b.value;
   function render() {
-    const dv = +d.value, bv = +b.value;
-    document.getElementById('val-d').textContent = touched.d ? dv + ' %' : 'bitte schieben';
-    document.getElementById('val-b').textContent = touched.b ? bv + ' %' : 'bitte schieben';
-    document.getElementById('row-d').classList.toggle('untouched', !touched.d);
-    document.getElementById('row-b').classList.toggle('untouched', !touched.b);
-    document.getElementById('bar-d').style.width = dv + '%';
-    document.getElementById('bar-b').style.width = bv + '%';
-    document.getElementById('val-r').textContent = (100 - dv - bv) + ' %';
+    for (const k in sl) {
+      document.getElementById('val-' + k).textContent = touched[k] ? sl[k].value + ' %' : 'bitte schieben';
+      document.getElementById('row-' + k).classList.toggle('untouched', !touched[k]);
+      document.getElementById('bar-' + k).style.width = sl[k].value + '%';
+    }
+    document.getElementById('val-r').textContent = (100 - sum()) + '\u00a0%';
   }
-  function onInput(me, other, key) {
-    touched[key] = true;
-    if (+me.value + +other.value > 100) me.value = 100 - +other.value;
+  for (const k in sl) sl[k].addEventListener('input', () => {
+    touched[k] = true;
+    const over = sum() - 100;
+    if (over > 0) sl[k].value = +sl[k].value - over;
     render();
     document.querySelector('[data-q=anteile]').classList.remove('missing');
-  }
-  d.addEventListener('input', () => onInput(d, b, 'd'));
-  b.addEventListener('input', () => onInput(b, d, 'b'));
+  });
   render();
 
   const form = document.getElementById('f');
@@ -145,14 +150,14 @@
     const val = n => (form.querySelector(`input[name="${n}"]:checked`) || {}).value;
     const data = {
       zeit: val('zeit'), auswahl: val('auswahl'),
-      dirigat: +d.value, botschaft: +b.value,
+      partitur: +sl.p.value, dirigat: +sl.d.value, botschaft: +sl.b.value,
       vorbereitet: +val('vorbereitet') || null, relevanz: val('relevanz'),
       ensemble: val('ensemble') || '', kommentar: form.kommentar.value,
     };
     const missing = [];
     if (!data.zeit) missing.push('zeit');
     if (!data.auswahl) missing.push('auswahl');
-    if (!touched.d || !touched.b) missing.push('anteile');
+    if (!touched.p || !touched.d || !touched.b) missing.push('anteile');
     if (!data.vorbereitet) missing.push('vorbereitet');
     if (!data.relevanz) missing.push('relevanz');
     if (missing.length) {
